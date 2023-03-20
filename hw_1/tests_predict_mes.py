@@ -67,7 +67,7 @@ class TestPredictMessageMood(unittest.TestCase):
                 self.assertEqual(mock_calls, mock_predict.mock_calls)
 
     def test_invalid_model(self):
-        model = list()
+        model = list
         with self.assertRaises(TypeError) as err:
             predict_message_mood(self.message,
                                  model)
