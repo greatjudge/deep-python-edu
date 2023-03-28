@@ -1,14 +1,16 @@
 """
 json parser
 """
+import json
+
 from typing import Iterable, Optional
 from collections.abc import Callable
 
 
 def parse_json(json_str: str,
                keyword_callback: Optional[Callable[[str, str], ...]] = None,
-               required_fields: Optional[Iterable[str]] = None,
-               keywords: Optional[Iterable[str]] = None) -> dict:
+               required_fields: Optional[Iterable[str]] = tuple(),
+               keywords: Optional[Iterable[str]] = tuple()) -> dict:
     """
     Parse json string specific format
      and keyword_callback for key from required_fields and words from keywords
@@ -18,42 +20,18 @@ def parse_json(json_str: str,
     :param keywords: words for which  keyword_callback is called
     :return: json_obj (dict)
     """
-    if json_str[0] != '{' or json_str[-1] != '}':
-        raise ValueError('json_str should begins with { and ends with }')
+    required_fields_set = set(required_fields)
+    keywords_set = set(keywords)
 
-    keyword_callback_condition = (
-            keyword_callback is not None and
-            required_fields is not None and
-            keywords is not None
-    )
-
-    if keyword_callback_condition:
-        required_fields_set = set(required_fields)
-        keywords_set = set(keywords)
-
-    json_obj = {}
-    for key_words in json_str.strip('{}').split(','):
-        key, words = key_words.split(':')
-        key, words = key.strip(), words.strip()
-
-        if (key[0], key[-1]) not in (('"', '"'), ("'", "'")):
-            raise ValueError('key must end and begin with " or \'')
-        if (words[0], words[-1]) not in (('"', '"'), ("'", "'")):
-            raise ValueError('words must end and begin with " or \'')
-
-        key, words_list = key.strip('"\''), words.strip('" \'').split(' ')
-
-        if key in json_obj:
-            raise ValueError('keys in  json_str must be unique')
-        json_obj[key] = []
-
+    json_obj = json.loads(json_str)
+    for key, words in json_obj.items():
+        words_list = words.split(' ')
         for word in words_list:
-            json_obj[key].append(word)
-
             if (
-                    keyword_callback_condition and
+                    keyword_callback is not None and
                     key in required_fields_set and
                     word in keywords_set
             ):
                 keyword_callback(key, word)
+        json_obj[key] = words_list
     return json_obj

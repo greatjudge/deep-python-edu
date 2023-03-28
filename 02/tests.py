@@ -1,11 +1,19 @@
+import json
 import unittest
+
 from unittest import mock
+from random import randint, choices
+from faker import Faker
 
 from parser import parse_json
+
+unittest.util._MAX_LENGTH=2000
 
 
 class TestParser(unittest.TestCase):
     def test_parsing(self):
+        mock_keyword_callback = mock.Mock()
+        mock_calls = []
         json_str_obj = [
             ('{"key": "word"}',
              {'key': ['word']}),
@@ -21,55 +29,13 @@ class TestParser(unittest.TestCase):
         ]
         for string, obj in json_str_obj:
             with self.subTest():
-                self.assertEqual(parse_json(string), obj)
-                self.assertEqual(parse_json(string.replace('"', "'")), obj)
+                self.assertEqual(parse_json(string, mock_keyword_callback), obj)
+                self.assertEqual(mock_calls,
+                                 mock_keyword_callback.mock_calls)
 
-    def test_invalid_brackets(self):
-        json_str = [
-            '"key": "word"}',
-            '{"key": "word"',
-            '"key": "word"'
-        ]
-        for string in json_str:
-            with self.subTest():
-                with self.assertRaises(ValueError) as err:
-                    parse_json(string)
-                self.assertEqual(str(err.exception),
-                                 'json_str should begins with { and ends with }')
-
-    def test_invalid_quotation_marks_key(self):
-        key_not_valid = [
-            '{key: "word1 word2"}',
-            '{"key: "word1 word2"}',
-            '{key": "word1 word2"}',
-            "{key: 'word1 word2'}",
-            "{'key: 'word1 word2'}",
-            "{key': 'word1 word2'}",
-        ]
-
-        for string in key_not_valid:
-            with self.subTest():
-                with self.assertRaises(ValueError) as err:
-                    parse_json(string)
-                self.assertEqual(str(err.exception),
-                                 'key must end and begin with " or \'')
-
-    def test_invalid_quotation_marks_words(self):
-        words_not_valid = [
-            '{"key": word1 word2}',
-            '{"key": "word1 word2}',
-            '{"key": word1 word2"}',
-            "{'key': word1 word2}",
-            "{'key': 'word1 word2}",
-            "{'key': word1 word2'}"
-        ]
-
-        for string in words_not_valid:
-            with self.subTest():
-                with self.assertRaises(ValueError) as err:
-                    parse_json(string)
-                self.assertEqual(str(err.exception),
-                                 'words must end and begin with " or \'')
+                self.assertEqual(parse_json(string, mock_keyword_callback, [], []), obj)
+                self.assertEqual(mock_calls,
+                                 mock_keyword_callback.mock_calls)
 
     def test_callback(self):
         mock_keyword_callback = mock.Mock()
@@ -105,3 +71,33 @@ class TestParser(unittest.TestCase):
                                mock.call('key3', 'only_key3')])
             self.assertEqual(mock_calls,
                              mock_keyword_callback.mock_calls)
+
+    def test_random_words(self):
+        faker = Faker(locale="Ru_ru")
+
+        for i in range(20):
+            mock_keyword_callback = mock.Mock()
+            mock_calls = []
+
+            keywords = [faker.word() for _ in range(randint(1, 20))]
+            keys = list(set([faker.word() for _ in range(randint(1, 20))]))
+            required_keys = choices(keys, k=randint(0, len(keys)))
+
+            json_obj = {}
+            json_obj_to_func = {}
+            for key in keys:
+                kwords = choices(keywords, k=randint(0, len(keywords)))
+                if key in required_keys:
+                    mock_calls.extend([mock.call(key, word) for word in kwords])
+                all_words = kwords + list(filter(lambda w: w not in keywords,
+                                                 (faker.word() for _ in range(randint(1, 20)))))
+                json_obj_to_func[key] = ' '.join(all_words)
+                json_obj[key] = all_words
+            json_str = json.dumps(json_obj_to_func, ensure_ascii=False)
+
+            self.assertEqual(json_obj, parse_json(json_str,
+                                                  mock_keyword_callback,
+                                                  required_keys,
+                                                  keywords))
+            self.assertCountEqual(mock_calls, mock_keyword_callback.mock_calls)
+
