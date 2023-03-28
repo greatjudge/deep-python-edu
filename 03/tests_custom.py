@@ -129,6 +129,7 @@ class EqualTest(unittest.TestCase):
             self.assertNotEqual(CustomList(list1), CustomList(list2))
             self.assertNotEqual(CustomList(list1), list2)
 
+
 class LessGreaterTest(unittest.TestCase):
     def setUp(self):
         self.less = {(1, 2, 3): (1, 2, 3, 4),
@@ -142,13 +143,13 @@ class LessGreaterTest(unittest.TestCase):
                           (5, 5): (1, 1),
                           (1, 1): ()}
 
-    def test_equal(self):
+    def test_less(self):
         for list1, list2 in self.less.items():
             list1, list2 = list(list1), list(list2)
             self.assertLess(CustomList(list1), CustomList(list2))
             self.assertLess(CustomList(list1), list2)
 
-    def test_not_equal(self):
+    def test_great(self):
         for list1, list2 in self.greater.items():
             list1, list2 = list(list1), list(list2)
             self.assertGreater(CustomList(list1), CustomList(list2))
