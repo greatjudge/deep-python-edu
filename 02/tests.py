@@ -27,8 +27,8 @@ class TestParser(unittest.TestCase):
               'key2': ['word2', 'word3'],
               'key3': ['word2', 'word3', 'word4']})
         ]
-        for string, obj in json_str_obj:
-            with self.subTest():
+        with self.subTest():
+            for string, obj in json_str_obj:
                 self.assertEqual(parse_json(string, mock_keyword_callback), obj)
                 self.assertEqual(mock_calls,
                                  mock_keyword_callback.mock_calls)
