@@ -7,8 +7,6 @@ from faker import Faker
 
 from parser import parse_json
 
-unittest.util._MAX_LENGTH=2000
-
 
 class TestParser(unittest.TestCase):
     def test_parsing(self):
