@@ -1,6 +1,7 @@
 import unittest
 from custom_meta import CustomMeta
 
+
 class CustomClass(metaclass=CustomMeta):
     x = 50
 
