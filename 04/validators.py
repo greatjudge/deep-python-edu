@@ -11,4 +11,4 @@ class MinLengthValidator:
 class EntirelyNumericValidator:
     def validate(self, value):
         if value.isdigit():
-            raise ValueError(f'Password can`be be entirely numeric')
+            raise ValueError('Password can`be be entirely numeric')

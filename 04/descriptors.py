@@ -61,5 +61,3 @@ class Password(String):
         for validator in self.validators:
             validator.validate(value)
         return value
-
-
