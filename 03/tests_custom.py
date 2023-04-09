@@ -24,9 +24,9 @@ class SubtractionTest(unittest.TestCase):
         with self.subTest():
             for (left, right), result in self.results.items():
                 left, right = list(left), list(right)
-                self.assertEqual(list(CustomList(left) - CustomList(right)), result)
-                self.assertEqual(list(CustomList(left) - right), result)
-                self.assertEqual(list(left - CustomList(right)), result)
+                self.assertSequenceEqual(iter(CustomList(left) - CustomList(right)), iter(result))
+                self.assertSequenceEqual(iter(CustomList(left) - right), iter(result))
+                self.assertSequenceEqual(iter(left - CustomList(right)), iter(result))
 
     def test_incorrect_subtraction(self):
         with self.subTest():
