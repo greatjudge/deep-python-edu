@@ -9,8 +9,8 @@ from collections.abc import Callable
 
 def parse_json(json_str: str,
                keyword_callback: Optional[Callable[[str, str], ...]] = None,
-               required_fields: Optional[Iterable[str]] = tuple(),
-               keywords: Optional[Iterable[str]] = tuple()) -> dict:
+               required_fields: Optional[Iterable[str]] = None,
+               keywords: Optional[Iterable[str]] = None) -> dict:
     """
     Parse json string specific format
      and keyword_callback for key from required_fields and words from keywords
@@ -20,18 +20,19 @@ def parse_json(json_str: str,
     :param keywords: words for which  keyword_callback is called
     :return: json_obj (dict)
     """
-    required_fields_set = set(required_fields)
-    keywords_set = set(keywords)
+    callback_condition = all((keyword_callback is not None,
+                              required_fields is not None,
+                              keywords is not None))
+    if callback_condition:
+        required_fields_set = set(required_fields)
+        keywords_set = set(keywords)
 
     json_obj = json.loads(json_str)
     for key, words in json_obj.items():
-        words_list = words.split(' ')
-        for word in words_list:
-            if (
-                    keyword_callback is not None and
-                    key in required_fields_set and
-                    word in keywords_set
-            ):
-                keyword_callback(key, word)
-        json_obj[key] = words_list
+        if callback_condition and key in required_fields_set:
+            words_list = words.split(' ')
+            for word in words_list:
+                if word in keywords_set:
+                    keyword_callback(key, word)
+        json_obj[key] = words
     return json_obj
