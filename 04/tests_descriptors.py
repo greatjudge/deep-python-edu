@@ -1,11 +1,12 @@
 import unittest
-from descriptors import Integer, String, PositiveInteger
+from descriptors import Integer, String, PositiveInteger, Password
 
 
 class Data:
     num = Integer()
     name = String()
     price = PositiveInteger()
+    password = Password()
 
     def __init__(self, num=10, name='name', price=10):
         self.num = num
@@ -80,3 +81,30 @@ class StringDescTest(unittest.TestCase):
                 self.assertEqual(str(ex.exception),
                                  f'name must be str not {type(value)}')
                 self.assertEqual(self.data.name, 'string')
+
+
+class PasswordDescTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.data = Data()
+
+    def test_normal(self):
+        self.data.password = 'password'
+        self.assertEqual(self.data.password, 'password')
+        self.assertEqual(self.data._password, 'password')
+
+    def test_error(self):
+        self.data.password = 'password'
+        with self.subTest():
+            with self.assertRaises(ValueError) as ex:
+                self.data.password = 'less6'
+            self.assertEqual(str(ex.exception),
+                             f'Password is too small.'
+                             f' It must be 6 at least'
+                             )
+            self.assertEqual(self.data.password, 'password')
+
+            with self.assertRaises(ValueError) as ex:
+                self.data.password = '1234567890'
+            self.assertEqual(str(ex.exception),
+                             f'Password can`be be entirely numeric')
+            self.assertEqual(self.data.password, 'password')

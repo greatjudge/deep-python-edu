@@ -4,6 +4,7 @@
 """
 
 import abc
+from validators import MinLengthValidator, EntirelyNumericValidator
 
 
 class ValidatedABC(abc.ABC):
@@ -32,16 +33,33 @@ class Integer(ValidatedABC):
         return value
 
 
-class String(ValidatedABC):
-    def validated(self, name: str, value):
-        if not isinstance(value, str):
-            raise TypeError(f'{name} must be str not {type(value)}')
-        return value
-
-
 class PositiveInteger(Integer):
     def validated(self, name, value: int):
         value = super().validated(name, value)
         if value < 0:
             raise ValueError(f'{name} must be >= 0, you set {value}')
         return value
+
+
+class String(ValidatedABC):
+    def validated(self, name: str, value: str):
+        if not isinstance(value, str):
+            raise TypeError(f'{name} must be str not {type(value)}')
+        return value
+
+
+class Password(String):
+    def __init__(self, validators=None):
+        if validators is None:
+            self.validators = [MinLengthValidator(),
+                               EntirelyNumericValidator()]
+        else:
+            self.validators = validators
+
+    def validated(self, name: str, value: str):
+        value = super().validated(name, value)
+        for validator in self.validators:
+            validator.validate(value)
+        return value
+
+
