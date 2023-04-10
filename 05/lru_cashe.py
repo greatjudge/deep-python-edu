@@ -23,7 +23,7 @@ class LRUCache:
             raise ValueError(f'limit must be > 0, not {limit}')
 
         self.records_dict = {}
-        self.limit = limit
+        self.__limit = limit
 
         self.head = Record(key=None, value=None)
         self.tail = Record(key=None, value=None, prev=self.head)
@@ -37,7 +37,7 @@ class LRUCache:
         return record.value
 
     def set(self, key, value):
-        if len(self.records_dict) >= self.limit:
+        if len(self.records_dict) >= self.__limit:
             last_record = self.tail.prev
             if last_record is not self.head:
                 del self.records_dict[last_record.key]
