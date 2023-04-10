@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Any, Hashable, Optional
 from dataclasses import dataclass
 
 
 @dataclass
 class Record:
-    key: Any
+    key: Optional[Hashable]
     value: Any
     prev: Any = None
     next: Any = None
@@ -19,6 +19,9 @@ class Record:
 class LRUCache:
 
     def __init__(self, limit=42):
+        if limit <= 0:
+            raise ValueError(f'limit must be > 0, not {limit}')
+
         self.records_dict = {}
         self.limit = limit
 
@@ -38,7 +41,7 @@ class LRUCache:
             last_record = self.tail.prev
             if last_record is not self.head:
                 del self.records_dict[last_record.key]
-                self._delete_rec(last_record)
+                self._delete_record(last_record)
 
         if key in self.records_dict:
             record = self.records_dict[key]
@@ -61,6 +64,7 @@ class LRUCache:
         self.head.next.prev = record
         self.head.next = record
 
-    def _delete_rec(self, record):
-        record.prev.next = self.tail
-        self.tail.prev = record.prev
+    def _delete_record(self, record):
+        if record is not self.head and record is not self.tail:
+            record.prev.next, record.next.prev = record.next, record.prev
+            del record

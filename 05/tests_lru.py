@@ -38,3 +38,18 @@ class LRUTest(unittest.TestCase):
         self.assertEqual(cache.get('k3'), 'val3')
         self.assertIsNone(cache.get('k2'))
         self.assertEqual(cache.get('k1'), 'val1')
+
+    def test_one_elem(self):
+        cache = LRUCache(1)
+
+        self.assertIsNone(cache.get('key'))
+        cache.set('key', 'value')
+        self.assertEqual(cache.get('key'), 'value')
+        cache.set('key', 'another value')
+        self.assertEqual(cache.get('key'), 'another value')
+
+        self.assertIsNone(cache.get('key1'))
+        cache.set('key1', 'value1')
+        self.assertIsNone(cache.get('key'))
+        self.assertEqual(cache.get('key1'), 'value1')
+
