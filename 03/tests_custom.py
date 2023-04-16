@@ -22,27 +22,36 @@ class SubtractionTest(unittest.TestCase):
 
     def test_correct_subtraction(self):
         with self.subTest():
-            for (left, right), result in self.results.items():
-                left, right = list(left), list(right)
-                self.assertSequenceEqual(list(CustomList(left) - CustomList(right)), list(result))
-                self.assertSequenceEqual(list(CustomList(left) - right), list(result))
-                self.assertSequenceEqual(list(left - CustomList(right)), list(result))
+            for (left_tup, right_tup), result in self.results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertEqual(list(left - right), list(result))
+                self.assertEqual(list(left - list(right)), list(result))
+                self.assertEqual(list(list(left) - right), list(result))
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_incorrect_subtraction(self):
         with self.subTest():
-            for (left, right), result in self.false_results.items():
-                left, right = list(left), list(right)
-                self.assertNotEqual(list(CustomList(left) - CustomList(right)), result)
-                self.assertNotEqual(list(CustomList(left) - right), result)
-                self.assertNotEqual(list(left - CustomList(right)), result)
+            for (left_tup, right_tup), result in self.false_results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertNotEqual(list(left - right), list(result))
+                self.assertNotEqual(list(left - list(right)), list(result))
+                self.assertNotEqual(list(list(left) - right), list(result))
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_result_is_customlist(self):
         with self.subTest():
-            for (left, right), result in self.results.items():
-                left, right = list(left), list(right)
-                self.assertIsInstance(CustomList(left) - CustomList(right), CustomList)
-                self.assertIsInstance(CustomList(left) - right, CustomList)
-                self.assertIsInstance(left - CustomList(right), CustomList)
+            for (left_tup, right_tup), result in self.results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertIsInstance(left - right, CustomList)
+                self.assertIsInstance(left - list(right), CustomList)
+                self.assertIsInstance(list(left) - right, CustomList)
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_not_change(self):
         with self.subTest():
@@ -74,27 +83,36 @@ class AdditionTest(unittest.TestCase):
 
     def test_correct_addition(self):
         with self.subTest():
-            for (left, right), result in self.results.items():
-                left, right = list(left), list(right)
-                self.assertEqual(CustomList(left) + CustomList(right), result)
-                self.assertEqual(CustomList(left) + right, result)
-                self.assertEqual(left + CustomList(right), result)
+            for (left_tup, right_tup), result in self.results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertEqual(list(left + right), list(result))
+                self.assertEqual(list(left + list(right)), list(result))
+                self.assertEqual(list(list(left) + right), list(result))
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_incorrect_addition(self):
         with self.subTest():
-            for (left, right), result in self.false_results.items():
-                left, right = list(left), list(right)
-                self.assertNotEqual(CustomList(left) + CustomList(right), result)
-                self.assertNotEqual(CustomList(left) + right, result)
-                self.assertNotEqual(left + CustomList(right), result)
+            for (left_tup, right_tup), result in self.false_results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertNotEqual(list(left + right), list(result))
+                self.assertNotEqual(list(left + list(right)), list(result))
+                self.assertNotEqual(list(list(left) + right), list(result))
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_result_is_customlist(self):
         with self.subTest():
-            for (left, right), result in self.results.items():
-                left, right = list(left), list(right)
-                self.assertIsInstance(CustomList(left) + CustomList(right), CustomList)
-                self.assertIsInstance(CustomList(left) + right, CustomList)
-                self.assertIsInstance(left + CustomList(right), CustomList)
+            for (left_tup, right_tup), result in self.results.items():
+                left, right = CustomList(left_tup), CustomList(right_tup)
+                self.assertIsInstance(left + right, CustomList)
+                self.assertIsInstance(left + list(right), CustomList)
+                self.assertIsInstance(list(left) + right, CustomList)
+
+                self.assertEqual(list(left), list(left_tup))
+                self.assertEqual(list(right), list(right_tup))
 
     def test_not_change(self):
         with self.subTest():
@@ -121,13 +139,19 @@ class EqualTest(unittest.TestCase):
 
     def test_equal(self):
         for list1, list2 in self.equal.items():
-            self.assertEqual(CustomList(list1), CustomList(list2))
-            self.assertEqual(CustomList(list1), list2)
+            left, right = CustomList(list1), CustomList(list2)
+            self.assertEqual(left, right)
+
+            self.assertEqual(list(left), list(list1))
+            self.assertEqual(list(right), list(list2))
 
     def test_not_equal(self):
         for list1, list2 in self.not_equal.items():
-            self.assertNotEqual(CustomList(list1), CustomList(list2))
-            self.assertNotEqual(CustomList(list1), list2)
+            left, right = CustomList(list1), CustomList(list2)
+            self.assertNotEqual(left, right)
+
+            self.assertEqual(list(left), list(list1))
+            self.assertEqual(list(right), list(list2))
 
 
 class LessGreaterTest(unittest.TestCase):
@@ -144,16 +168,20 @@ class LessGreaterTest(unittest.TestCase):
                           (1, 1): ()}
 
     def test_less(self):
-        for list1, list2 in self.less.items():
-            list1, list2 = list(list1), list(list2)
-            self.assertLess(CustomList(list1), CustomList(list2))
-            self.assertLess(CustomList(list1), list2)
+        for tup1, tup2 in self.less.items():
+            list1, list2 = CustomList(tup1), CustomList(tup2)
+            self.assertLess(list1, list2)
+
+            self.assertEqual(list(list1), list(tup1))
+            self.assertEqual(list(list2), list(tup2))
 
     def test_great(self):
-        for list1, list2 in self.greater.items():
-            list1, list2 = list(list1), list(list2)
-            self.assertGreater(CustomList(list1), CustomList(list2))
-            self.assertGreater(CustomList(list1), list2)
+        for tup1, tup2 in self.greater.items():
+            list1, list2 = CustomList(tup1), CustomList(tup2)
+            self.assertGreater(list1, list2)
+
+            self.assertEqual(list(list1), list(tup1))
+            self.assertEqual(list(list2), list(tup2))
 
 
 class TestStr(unittest.TestCase):

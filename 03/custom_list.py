@@ -1,3 +1,6 @@
+from itertools import zip_longest
+
+
 class CustomList(list):
     def __eq__(self, other):
         return sum(self) == sum(other)
@@ -15,23 +18,15 @@ class CustomList(list):
         return sum(self) <= sum(other)
 
     def __add__(self, other):
-        self_size, other_size = len(self), len(other)
-        return self.__class__([(self[i] if i < self_size else 0) +
-                               (other[i] if i < other_size else 0)
-                               for i in range(max(self_size,
-                                                  other_size))
-                               ])
+        return self.__class__([slf + oth for slf, oth
+                               in zip_longest(self, other, fillvalue=0)])
 
     def __radd__(self, other):
         return self + other
 
     def __sub__(self, other):
-        self_size, other_size = len(self), len(other)
-        return self.__class__([(self[i] if i < self_size else 0) -
-                               (other[i] if i < other_size else 0)
-                               for i in range(max(self_size,
-                                                  other_size))
-                               ])
+        return self.__class__([slf - oth for slf, oth
+                               in zip_longest(self, other, fillvalue=0)])
 
     def __rsub__(self, other):
         tmp = self - other
