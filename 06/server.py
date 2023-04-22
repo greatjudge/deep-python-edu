@@ -1,4 +1,5 @@
 import argparse
+import signal
 import sys
 import socket
 import json
@@ -7,6 +8,7 @@ from socket import SocketType
 from threading import Thread, Lock
 from queue import Queue
 from collections import Counter
+from dataclasses import dataclass
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,7 +16,18 @@ from bs4 import BeautifulSoup
 
 HOST = '127.0.0.1'
 PORT = 8800
-urls_count = 0
+
+EXECUTING = True
+
+
+def signal_handler(signum, frame):
+    global EXECUTING
+    EXECUTING = False
+    print('The shutdown has started')
+
+
+signal.signal(signal.SIGINT, signal_handler)
+# signal.signal(signal.SIGTERM, signal_handler)
 
 
 def get_args():
@@ -36,55 +49,117 @@ def get_args():
     return args
 
 
-def handle_url(url: str, top_k: int) -> bytes:
-    res = requests.get(url)  # TODO Обработка ошибки
-
-    # можно ли делегировать другому процессу?
-    soup = BeautifulSoup(res.text, 'lxml')
-    most_common = Counter(soup.get_text().split()).most_common(top_k)
-    return json.dumps(dict(most_common)).encode()
+@dataclass
+class ProcessedURLs:
+    urls_count: int = 0
 
 
-def handle_connection(conn, top_k: int, lock: Lock):
-    while True:
-        data = conn.recv(1024)  # TODO Обработка ошибки
-        if not data:
-            break
-        url = data.decode()
-        message = handle_url(url, top_k)
-        conn.send(message)
-
-        with lock:
-            global urls_count
-            urls_count += 1
-        print(f'Processed {urls_count} urls')
+class ExitPill:
+    pass
 
 
-def thread_work(work_queue: Queue[SocketType], top_k: int, lock: Lock):
-    while True:
-        conn = work_queue.get()
-        handle_connection(conn, top_k, lock)
-        conn.close()
+class Worker(Thread):
+    def __init__(self, work_queue: Queue[SocketType | ExitPill],
+                 top_k: int, lock: Lock,
+                 processed_urls: ProcessedURLs,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.queue = work_queue
+        self.top_k = top_k
+        self.lock = lock
+        self.processed_urls = processed_urls
+
+    def run(self):
+        while True:
+            obj = self.queue.get()
+            if isinstance(obj, ExitPill):
+                break
+            self._handle_connection(obj)
+            obj.close()
+
+    def _handle_connection(self, conn: SocketType):
+        while True:
+            try:
+                data = conn.recv(1024)
+            except socket.error as err:
+                print('Error! connection socket didn`t get message: ', err)
+                break
+
+            if not data:
+                break
+            url = data.decode()
+
+            try:
+                most_common = self._most_common_words(self._get_html(url),
+                                                      self.top_k)
+                message = json.dumps(most_common).encode()
+            except requests.ConnectionError as err:
+                message = json.dumps({'error': str(err)}).encode()
+            except requests.Timeout:
+                message = json.dumps({'error': 'request to url'
+                                               ' exceeded 5 seconds'})
+            conn.send(message)
+
+            with self.lock:
+                self.processed_urls.urls_count += 1
+                print(f'Processed {self.processed_urls.urls_count} urls')
+
+    @staticmethod
+    def _most_common_words(text: str, top_k: int) -> dict[str, int]:
+        soup = BeautifulSoup(text, 'lxml')
+        words = soup.get_text().split()
+        return dict(Counter(words).most_common(top_k))
+
+    @staticmethod
+    def _get_html(url: str) -> str:
+        res = requests.get(url, timeout=5)
+        return res.text
+
+
+class Server:
+    def __init__(self, host=HOST, port=PORT):
+        self.server = socket.create_server((host, port), reuse_port=True)
+        self.handled_urls = ProcessedURLs()
+
+    def run_server(self, num_workers: int, top_k: int):
+        print('Starting server ...')
+        self.server.listen(3)
+
+        work_queue: Queue[SocketType | ExitPill] = Queue()
+        lock = Lock()
+
+        workers = [Worker(work_queue, top_k, lock, self.handled_urls)
+                   for _ in range(num_workers)]
+
+        for worker in workers:
+            worker.start()
+
+        print('Server is accepting connections')
+        self.server.settimeout(1)
+        while EXECUTING:
+            try:
+                conn, _ = self.server.accept()
+                work_queue.put(conn)
+            except socket.timeout:
+                continue
+
+        print('Server doesnt accept new connections')
+        print('Processing existing connections ...')
+
+        exit_pill = ExitPill()
+        for _ in range(num_workers):
+            work_queue.put(exit_pill)
+
+        for worker in workers:
+            worker.join()
+
+        print('Shutdown')
+        self.server.close()
 
 
 def main(num_workers: int, top_k: int):
-    server = socket.create_server((HOST, PORT), reuse_port=True)
-    server.listen(3)
-
-    work_queue = Queue()
-    lock = Lock()
-
-    threads = [Thread(target=thread_work,
-                      args=(work_queue, top_k, lock),
-                      daemon=True)
-               for _ in range(num_workers)]
-
-    for thread in threads:
-        thread.start()
-
-    while True:
-        conn, _ = server.accept()
-        work_queue.put(conn)
+    server = Server()
+    server.run_server(num_workers, top_k)
 
 
 if __name__ == '__main__':
