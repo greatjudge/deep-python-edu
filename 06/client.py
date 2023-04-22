@@ -1,4 +1,5 @@
 import socket
+import os
 
 from argparse import ArgumentParser
 from threading import Thread, Lock
@@ -14,23 +15,43 @@ def get_args():
     parser = ArgumentParser(description=descr)
     parser.add_argument('m', type=int, default=5, help='Количество потоков')
     parser.add_argument('filename', type=str, help='Имя файла с урлами')
-    # TODO Проверка на суш файла, m > 1
+
+    args = parser.parse_args()
+    if not os.path.exists(args.filename):
+        print(f'*** Usage error: {args.filename} does not exist')
+    if args.m < 1:
+        print('*** Usage error: m must be > 0')
     return parser.parse_args()
 
 
 def work(urls_file: TextIO, addr: tuple[str, int], lock: Lock):
-    conn = socket.create_connection(addr)  # TODO обработка ошибки
+    try:
+        conn = socket.create_connection(addr)
+    except socket.error as err:
+        print(f'Error in create_connection with {addr}: {err}')
+        print('Stop the thread work')
+        return
+
     with lock:
         line = urls_file.readline()
     while line:
         url = line.strip()
-        conn.send(url.encode())  # TODO обработка ошибки
-        data = conn.recv(2048)  # TODO обработка ошибки
+
+        try:
+            conn.send(url.encode())
+            data = conn.recv(2048)
+        except socket.error as err:
+            print(f'Error in communication with {addr}!: {err}')
+            break
+        finally:
+            conn.close()
+
         if data:
             print(f'{url}: {data.decode()}')
 
         with lock:
             line = urls_file.readline()
+        conn.close()
 
 
 def main(urls_filename: str, m_threads: int):

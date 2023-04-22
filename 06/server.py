@@ -82,7 +82,7 @@ class Worker(Thread):
             try:
                 data = conn.recv(1024)
             except socket.error as err:
-                print('Error! connection socket didn`t get message: ', err)
+                print('Error in connection socket recv!: ', err)
                 break
 
             if not data:
