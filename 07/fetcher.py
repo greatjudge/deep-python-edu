@@ -27,15 +27,18 @@ async def useful_actoin(res: ClientResponse):
 
 
 async def fetch_content(url: str, client: ClientSession):
-    async with client.get(url) as res:
-        await useful_actoin(res)
-        print(f'{url} is fetched')
+    try:
+        async with client.get(url, timeout=5) as res:
+            await useful_actoin(res)
+            print(f'{url} is fetched')
+    except asyncio.TimeoutError as err:
+        print(f'timeout error in url: {url}: {err}')
 
 
 async def supervisor(filename: str, count_workers: int):
     semaphore = asyncio.Semaphore(count_workers)
-    async with aiohttp.ClientSession() as client:
-        with open(filename, encoding='utf-8') as file:
+    with open(filename, encoding='utf-8') as file:
+        async with aiohttp.ClientSession() as client:
             while line := file.readline():
                 url = line.strip()
                 async with semaphore:
