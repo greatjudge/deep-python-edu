@@ -41,17 +41,15 @@ def work(urls_file: TextIO, addr: tuple[str, int], lock: Lock):
             conn.send(url.encode())
             data = conn.recv(2048)
         except socket.error as err:
-            print(f'Error in communication with {addr}!: {err}')
+            print(f'Error in communication with {addr}, {url=}!: {err}')
             break
-        finally:
-            conn.close()
 
         if data:
             print(f'{url}: {data.decode()}')
 
         with lock:
             line = urls_file.readline()
-        conn.close()
+    conn.close()
 
 
 def main(urls_filename: str, m_threads: int):

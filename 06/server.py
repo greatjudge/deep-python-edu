@@ -17,12 +17,9 @@ from bs4 import BeautifulSoup
 HOST = '127.0.0.1'
 PORT = 8800
 
-EXECUTING = True
-
 
 def signal_handler(signum, frame):
-    global EXECUTING
-    EXECUTING = False
+    Server.EXECUTING = False
     print('The shutdown has started')
 
 
@@ -80,7 +77,7 @@ class Worker(Thread):
     def _handle_connection(self, conn: SocketType):
         while True:
             try:
-                data = conn.recv(1024)
+                data = conn.recv(2048)
             except socket.error as err:
                 print('Error in connection socket recv!: ', err)
                 break
@@ -117,6 +114,8 @@ class Worker(Thread):
 
 
 class Server:
+    EXECUTING = True
+
     def __init__(self, host=HOST, port=PORT):
         self.server = socket.create_server((host, port), reuse_port=True)
         self.handled_urls = ProcessedURLs()
@@ -136,7 +135,7 @@ class Server:
 
         print('Server is accepting connections')
         self.server.settimeout(1)
-        while EXECUTING:
+        while self.EXECUTING:
             try:
                 conn, _ = self.server.accept()
                 work_queue.put(conn)
