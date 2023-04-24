@@ -19,7 +19,7 @@ PORT = 8800
 
 
 def signal_handler(signum, frame):
-    Server.EXECUTING = False
+    Server.stop_all_servers()
     print('The shutdown has started')
 
 
@@ -56,6 +56,8 @@ class ExitPill:
 
 
 class Worker(Thread):
+    SOCKET_TIMEOUT = 10
+
     def __init__(self, work_queue: Queue[SocketType | ExitPill],
                  top_k: int, lock: Lock,
                  processed_urls: ProcessedURLs,
@@ -71,6 +73,7 @@ class Worker(Thread):
             obj = self.queue.get()
             if isinstance(obj, ExitPill):
                 break
+            obj.settimeout(self.SOCKET_TIMEOUT)
             self._handle_connection(obj)
             obj.close()
 
@@ -78,6 +81,11 @@ class Worker(Thread):
         while True:
             try:
                 data = conn.recv(2048)
+            except socket.timeout as err:
+                mes = f'the waiting time {self.SOCKET_TIMEOUT}s' \
+                      f' was exceeded: {err}'
+                conn.send(mes.encode())
+                break
             except socket.error as err:
                 print('Error in connection socket recv!: ', err)
                 break
@@ -92,6 +100,8 @@ class Worker(Thread):
                 message = json.dumps(most_common).encode()
             except requests.ConnectionError as err:
                 message = json.dumps({'error': str(err)}).encode()
+            except requests.exceptions.MissingSchema as err:
+                message = json.dumps({'error': f'invalid url: {err}'}).encode()
             except requests.Timeout:
                 message = json.dumps({'error': 'request to url'
                                                ' exceeded 5 seconds'})
@@ -114,13 +124,29 @@ class Worker(Thread):
 
 
 class Server:
-    EXECUTING = True
+    EXECUTING_ALL = True
 
     def __init__(self, host=HOST, port=PORT):
         self.server = socket.create_server((host, port), reuse_port=True)
+        self.executing = True
         self.handled_urls = ProcessedURLs()
 
+    @classmethod
+    def stop_all_servers(cls):
+        cls.EXECUTING_ALL = False
+
+    @classmethod
+    def allow_servers_to_execute(cls):
+        cls.EXECUTING_ALL = True
+
+    def stop_server(self):
+        self.executing = False
+
+    def is_running(self) -> bool:
+        return self.__class__.EXECUTING_ALL and self.executing
+
     def run_server(self, num_workers: int, top_k: int):
+        self.executing = True
         print('Starting server ...')
         self.server.listen(3)
 
@@ -135,7 +161,7 @@ class Server:
 
         print('Server is accepting connections')
         self.server.settimeout(1)
-        while self.EXECUTING:
+        while self.is_running():
             try:
                 conn, _ = self.server.accept()
                 work_queue.put(conn)
@@ -156,11 +182,11 @@ class Server:
         self.server.close()
 
 
-def main(num_workers: int, top_k: int):
+def run_server(num_workers: int, top_k: int):
     server = Server()
     server.run_server(num_workers, top_k)
 
 
 if __name__ == '__main__':
     args = get_args()
-    main(args.workers, args.top_k)
+    run_server(args.workers, args.top_k)
