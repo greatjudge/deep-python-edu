@@ -24,7 +24,6 @@ def signal_handler(signum, frame):
 
 
 signal.signal(signal.SIGINT, signal_handler)
-# signal.signal(signal.SIGTERM, signal_handler)
 
 
 def get_args():
@@ -62,6 +61,9 @@ class Worker(Thread):
                  top_k: int, lock: Lock,
                  processed_urls: ProcessedURLs,
                  *args, **kwargs):
+        """
+        processed_urls: an object shared between threads
+        """
         super().__init__(*args, **kwargs)
         self.queue = work_queue
         self.top_k = top_k
@@ -129,7 +131,7 @@ class Server:
     def __init__(self, host=HOST, port=PORT):
         self.server = socket.create_server((host, port), reuse_port=True)
         self.executing = True
-        self.handled_urls = ProcessedURLs()
+        self.processed_urls = ProcessedURLs()
 
     @classmethod
     def stop_all_servers(cls):
@@ -140,6 +142,9 @@ class Server:
         cls.EXECUTING_ALL = True
 
     def stop_server(self):
+        """
+        called from another thread
+        """
         self.executing = False
 
     def is_running(self) -> bool:
@@ -147,13 +152,16 @@ class Server:
 
     def run_server(self, num_workers: int, top_k: int):
         self.executing = True
+        if not self.EXECUTING_ALL:
+            print('instances are not allowed to execute',
+                  'call "allow_servers_to_execute" before run')
         print('Starting server ...')
         self.server.listen(3)
 
         work_queue: Queue[SocketType | ExitPill] = Queue()
         lock = Lock()
 
-        workers = [Worker(work_queue, top_k, lock, self.handled_urls)
+        workers = [Worker(work_queue, top_k, lock, self.processed_urls)
                    for _ in range(num_workers)]
 
         for worker in workers:

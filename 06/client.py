@@ -52,10 +52,10 @@ def work(urls_file: TextIO, addr: tuple[str, int], lock: Lock):
     conn.close()
 
 
-def main(urls_filename: str, m_threads: int):
+def run_client(host: str, port: int, urls_filename: str, m_threads: int):
     with open(urls_filename, encoding='utf-8') as urls_file:
         lock = Lock()
-        threads = [Thread(target=work, args=(urls_file, (HOST, PORT), lock))
+        threads = [Thread(target=work, args=(urls_file, (host, port), lock))
                    for _ in range(m_threads)]
 
         for thread in threads:
@@ -67,4 +67,4 @@ def main(urls_filename: str, m_threads: int):
 
 if __name__ == '__main__':
     args = get_args()
-    main(args.filename, args.m)
+    run_client(HOST, PORT, args.filename, args.m)

@@ -69,4 +69,4 @@ class TestServer(unittest.TestCase):
             result = []
             while not result_queue.empty():
                 result.append(json.loads(result_queue.get()))
-            self.assertEqual(result, answer)
+            self.assertCountEqual(result, answer)
