@@ -1,5 +1,6 @@
 import unittest
 from lru_cashe import LRUCache
+from random import randrange
 
 
 class LRUTest(unittest.TestCase):
@@ -52,4 +53,55 @@ class LRUTest(unittest.TestCase):
         cache.set('key1', 'value1')
         self.assertIsNone(cache.get('key'))
         self.assertEqual(cache.get('key1'), 'value1')
+
+    def test_insert_update_displacement(self):
+        limit = 10
+        cache = LRUCache(limit)
+
+        # insert
+        for i in range(limit):
+            key, value = f'key_{i}', f'value_{i}'
+            self.assertIsNone(cache.get(key))
+            cache.set(key, value)
+            self.assertEqual(cache.get(key), value)
+
+        # update
+        i_isnot_update = randrange(limit)
+        not_update_key = f'key_{i_isnot_update}'
+        for i in range(limit):
+            if i != i_isnot_update:
+                key, new_value = f'key_{i}', f'new_value_{i}'
+                cache.set(key, new_value)
+                self.assertEqual(cache.get(key), new_value)
+
+        # insert new
+        new_key, value = 'new_key', 'new_key_value'
+        self.assertIsNone(cache.get(new_key))
+        cache.set(new_key, value)
+        self.assertEqual(cache.get(new_key), value)
+
+        # not_update_key is displaced
+        self.assertIsNone(cache.get(not_update_key))
+
+        # updated keys is not displaced
+        for i in range(limit):
+            if i != i_isnot_update:
+                key, new_value = f'key_{i}', f'new_value_{i}'
+                self.assertEqual(cache.get(key), new_value)
+
+    def test_reached_limit_update_key(self):
+        limit = 10
+        cache = LRUCache(limit)
+        for i in range(limit):
+            key, value = f'key_{i}', f'value_{i}'
+            self.assertIsNone(cache.get(key))
+            cache.set(key, value)
+            self.assertEqual(cache.get(key), value)
+        key, new_value = f'key_{limit - 1}', f'new_value_{limit - 1}'
+        cache.set(key, new_value)
+        self.assertEqual(cache.get(key), new_value)
+
+        for i in range(limit - 1):
+            key, value = f'key_{i}', f'value_{i}'
+            self.assertEqual(cache.get(key), value)
 
