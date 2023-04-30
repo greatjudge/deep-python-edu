@@ -1,5 +1,5 @@
 import unittest
-from lru_cashe import LRUCache
+from lru_cache import LRUCache
 from random import randrange
 
 
@@ -14,7 +14,7 @@ class LRUTest(unittest.TestCase):
                 cache.set(key, value)
                 self.assertEqual(cache.get(key), value)
 
-    def test_reset(self):
+    def test_update(self):
         cache = LRUCache()
         self.assertIsNone(cache.get('key'))
 
@@ -23,6 +23,19 @@ class LRUTest(unittest.TestCase):
 
         cache.set('key', 'another value')
         self.assertEqual(cache.get('key'), 'another value')
+
+    def test_displacement(self):
+        cache = LRUCache(1)
+
+        self.assertIsNone(cache.get('key1'))
+        cache.set('key1', 'value1')
+        self.assertEqual(cache.get('key1'), 'value1')
+
+        self.assertIsNone(cache.get('key2'))
+        self.assertEqual(cache.get('key1'), 'value1')
+        cache.set('key2', 'value2')
+        self.assertEqual(cache.get('key2'), 'value2')
+        self.assertIsNone(cache.get('key1'))
 
     def test_limit(self):
         cache = LRUCache(2)
@@ -92,16 +105,20 @@ class LRUTest(unittest.TestCase):
     def test_reached_limit_update_key(self):
         limit = 10
         cache = LRUCache(limit)
+
+        # insert
         for i in range(limit):
             key, value = f'key_{i}', f'value_{i}'
             self.assertIsNone(cache.get(key))
             cache.set(key, value)
             self.assertEqual(cache.get(key), value)
+
+        # update last
         key, new_value = f'key_{limit - 1}', f'new_value_{limit - 1}'
         cache.set(key, new_value)
         self.assertEqual(cache.get(key), new_value)
 
+        # other keys are not changed and stayed in cache
         for i in range(limit - 1):
             key, value = f'key_{i}', f'value_{i}'
             self.assertEqual(cache.get(key), value)
-

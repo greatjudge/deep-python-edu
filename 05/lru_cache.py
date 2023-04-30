@@ -65,4 +65,3 @@ class LRUCache:
         record.prev, record.next = after_which, after_which.next
         after_which.next.prev = record
         after_which.next = record
-
