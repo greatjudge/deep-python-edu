@@ -122,3 +122,26 @@ class LRUTest(unittest.TestCase):
         for i in range(limit - 1):
             key, value = f'key_{i}', f'value_{i}'
             self.assertEqual(cache.get(key), value)
+
+    def test_update_displacement(self):
+        limit = 3
+        cache = LRUCache(limit)
+
+        # insert 3 elements
+        for i in range(limit):
+            key, value = f'key_{i}', f'value_{i}'
+            cache.set(key, value)
+
+        # update key_0
+        key, k0_new_value = f'key_{0}', f'new_value_{0}'
+        cache.set(key, k0_new_value)
+
+        # insert new
+        new_key, nk_value = 'new_key', 'new_key_value'
+        cache.set(new_key, nk_value)
+
+        # check that key_1 is removed and key_2, key_0, new_key in cache
+        self.assertIsNone(cache.get('key_1'))
+        self.assertEqual(cache.get('key_0'), k0_new_value)
+        self.assertEqual(cache.get('key_2'), 'value_2')
+        self.assertEqual(cache.get('new_key'), nk_value)
