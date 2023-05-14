@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from argparse import ArgumentParser
 
 
-format_file = logging.Formatter("%(asctime)s\t%(levelname)s\t[file]\t%(message)s")
+format_file = logging.Formatter("%(asctime)s\t%(levelname)s\t"
+                                "[file]\t%(message)s")
 
 loglru_handler = logging.FileHandler('lru_cache.log')
 loglru_handler.setLevel(logging.DEBUG)
@@ -23,8 +24,10 @@ class Filter(logging.Filter):
 
 def get_args():
     parser = ArgumentParser()
-    parser.add_argument('-s', action='store_true', help='Доп логирование в stdout')
-    parser.add_argument('-f', action='store_true', help='Применение фильтра')
+    parser.add_argument('-s', action='store_true',
+                        help='Доп логирование в stdout')
+    parser.add_argument('-f', action='store_true',
+                        help='Применение фильтра')
     return parser.parse_args()
 
 
@@ -73,7 +76,8 @@ class LRUCache:
             self._move_to_start(record)
         else:
             if len(self.records_dict) >= self.__limit:
-                logger.error('set the missing key %s when the capacity is reached', key)
+                logger.error('set the missing key %s'
+                             ' when the capacity is reached', key)
                 last_record = self.tail.prev
                 # there is no check that last_record is head because limit > 0
                 self._remove_from_dll(last_record)
@@ -106,7 +110,8 @@ class LRUCache:
 if __name__ == '__main__':
     args = get_args()
     if args.s:
-        format_stream = logging.Formatter("%(asctime)s\t%(levelname)s\t[stream]\t%(message)s")
+        format_stream = logging.Formatter("%(asctime)s\t%(levelname)s\t"
+                                          "[stream]\t%(message)s")
         stream = logging.StreamHandler()
         stream.setFormatter(format_stream)
         logger.addHandler(stream)
