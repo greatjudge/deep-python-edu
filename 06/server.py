@@ -90,7 +90,7 @@ class Worker(Thread):
                 break
             except socket.error as err:
                 print('Error in connection socket recv!: ', err)
-                break
+                continue
 
             if not data:
                 break

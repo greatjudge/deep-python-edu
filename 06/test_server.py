@@ -9,7 +9,7 @@ from queue import Queue
 
 
 class TestServer(unittest.TestCase):
-    HOST, PORT = 'localhost', 16000
+    HOST, PORT = 'localhost', 55553
 
     def test_normal(self):
         server = Server(self.HOST, self.PORT)

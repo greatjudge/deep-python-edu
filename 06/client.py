@@ -42,7 +42,7 @@ def work(urls_file: TextIO, addr: tuple[str, int], lock: Lock):
             data = conn.recv(2048)
         except socket.error as err:
             print(f'Error in communication with {addr}, {url=}!: {err}')
-            break
+            continue
 
         if data:
             print(f'{url}: {data.decode()}')
