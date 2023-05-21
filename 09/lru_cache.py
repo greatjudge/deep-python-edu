@@ -5,21 +5,22 @@ from dataclasses import dataclass
 from argparse import ArgumentParser
 
 
-format_file = logging.Formatter("%(asctime)s\t%(levelname)s\t"
-                                "[file]\t%(message)s")
-
-loglru_handler = logging.FileHandler('lru_cache.log')
-loglru_handler.setLevel(logging.DEBUG)
-loglru_handler.setFormatter(format_file)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(loglru_handler)
-
-
 class Filter(logging.Filter):
     def filter(self, record):
         return len(record.msg.split()) % 2 == 0
+
+
+def get_logger():
+    format_file = logging.Formatter("%(asctime)s\t%(levelname)s\t"
+                                    "[file]\t%(message)s")
+    loglru_handler = logging.FileHandler('lru_cache.log')
+    loglru_handler.setLevel(logging.DEBUG)
+    loglru_handler.setFormatter(format_file)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(loglru_handler)
+    return logger
 
 
 def get_args():
@@ -43,6 +44,9 @@ class Record:
 
     def __eq__(self, other):
         return self.key == other.key
+
+
+logger = get_logger()
 
 
 class LRUCache:
