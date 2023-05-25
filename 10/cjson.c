@@ -78,6 +78,7 @@ int handle_item(size_t item_start, size_t item_end, const char* string,
         return 0;
     }
 
+
     size_t raw_key_end = i;
     while (raw_key_start < raw_key_end && isspace(string[raw_key_end - 1]))
         raw_key_end--;
@@ -121,13 +122,24 @@ PyObject* cjson_loads(PyObject* self, PyObject* args){
 
     size_t str_len = strlen(string);
 
-    if (str_len < 2 || string[0] != '{' || string[str_len - 1] != '}'){
+    if (str_len < 2){
+        PyErr_Format(PyExc_TypeError, "Expected object or value");
+        return NULL;
+    }
+
+    size_t json_start = 0, json_end = str_len;
+    while (json_start < json_end && isspace(string[json_start]))
+        json_start++;
+    while (json_start < json_end && isspace(string[json_end - 1]))
+        json_end--;
+
+    if (json_start >= json_end || string[json_start] != '{' || string[json_end - 1] != '}'){
         PyErr_Format(PyExc_TypeError, "Expected object or value");
         return NULL;
     }
 
     int empty_dict = 1;
-    for (size_t i = 1; i < str_len - 1; i++){
+    for (size_t i = json_start + 1; i < json_end - 1; i++){
         if (!isspace(string[i])){
             empty_dict = 0;
             break;
@@ -136,12 +148,11 @@ PyObject* cjson_loads(PyObject* self, PyObject* args){
     if (empty_dict)
         return dict;
 
-    size_t i = 1, item_start = 1;
+    size_t i = json_start + 1, item_start = json_start + 1;
     size_t key_start, key_end, value_start, value_end;
     int partial_success;
     int in_string = 0;
-    for(; i < str_len - 1; i++){
-        // printf("in loop\n");
+    for(; i < json_end - 1; i++){
         if (string[i] == '"')
             in_string = 1 - in_string;
         if(string[i] == ',' && !in_string){
@@ -151,6 +162,7 @@ PyObject* cjson_loads(PyObject* self, PyObject* args){
                 PyObject *value = NULL;
 
                 char* key_str = strndup(string + key_start, key_end - key_start);
+
                 if (!(key = Py_BuildValue("s", key_str))) {
                     printf("ERROR: Failed to build string value\n");
                     return NULL;
@@ -173,7 +185,7 @@ PyObject* cjson_loads(PyObject* self, PyObject* args){
             item_start = i + 1;
         }
     }
-    partial_success = handle_item(item_start, str_len - 1, string, &key_start, &key_end, &value_start, &value_end);
+    partial_success = handle_item(item_start, json_end - 1, string, &key_start, &key_end, &value_start, &value_end);
     if(partial_success){
         PyObject *key = NULL;
         PyObject *value = NULL;
@@ -202,8 +214,71 @@ PyObject* cjson_loads(PyObject* self, PyObject* args){
 }
 
 
+
+PyObject* cjson_dumps(PyObject* self, PyObject* args){
+    PyObject *dict;
+
+    if(!PyArg_ParseTuple(args, "O", &dict))
+    {
+        printf("ERROR: Failed to parse arguments");
+        return NULL;
+    }
+
+    PyObject *final_string_list = PyList_New(0);
+    PyObject *sep = PyUnicode_FromString(": ");
+    PyObject *quots = PyUnicode_FromString("\"");
+    PyObject *key, *value, *item_str, *value_str;
+
+
+    Py_ssize_t pos = 0;
+    while (PyDict_Next(dict, &pos, &key, &value)){
+        if (!PyUnicode_Check(key)){
+            PyErr_Format(PyExc_TypeError, "key must be str");
+            return NULL;
+        }
+        PyObject *key_str = PyUnicode_FromObject(key);
+        key_str = PyUnicode_Concat(PyUnicode_Concat(PyUnicode_Concat(quots, key), quots), sep);
+
+        if (PyUnicode_Check(value)){
+            value_str = PyUnicode_Concat(PyUnicode_Concat(quots, value), quots);
+        } else if (PyLong_Check(value)){
+            long long val = PyLong_AsLongLong(value);
+            int length = snprintf( NULL, 0, "%lld", val );
+            char* str = malloc( length + 1 );
+            snprintf( str, length + 1, "%lld", val );
+            value_str = PyUnicode_FromString(str);
+            free(str);
+        } else if (PyFloat_Check(value)){
+            double val = PyFloat_AsDouble(value);
+            int length = snprintf( NULL, 0, "%lf", val );
+            char* str = malloc( length + 1 );
+            snprintf( str, length + 1, "%g", val );
+            value_str = PyUnicode_FromString(str);
+            free(str);
+        } else{
+            PyErr_Format(PyExc_TypeError, "value must be str or number");
+            return NULL;
+        }
+        
+        item_str = PyUnicode_Concat(key_str, value_str);
+        int status = PyList_Append(final_string_list, item_str);
+        // printf("%d", status);
+    }
+    PyObject *join_sep = PyUnicode_FromString(", ");
+    PyObject *final_string = PyUnicode_Join(join_sep, final_string_list);
+
+    PyObject *brl = PyUnicode_FromString("{");
+    PyObject *brr = PyUnicode_FromString("}");
+    PyObject* string = PyUnicode_Concat(PyUnicode_Concat(brl, final_string), brr);
+
+    return string;
+}
+
+
+
 static PyMethodDef methods[] = {
     {"loads", cjson_loads, METH_VARARGS, ""},
+    {"dumps", cjson_dumps, METH_VARARGS, ""},
     {NULL, NULL, 0, NULL}
 };
 
