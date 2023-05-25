@@ -2,6 +2,9 @@ import unittest
 import cjson
 import json
 
+from random import choices
+from faker import Faker
+
 
 class TestLoads(unittest.TestCase):
     def test_empty_string(self):
@@ -37,7 +40,9 @@ class TestLoads(unittest.TestCase):
             '{   "key" : 45 }',
             '{"key": 45.45}',
             '{    "key": "val"  , "key2": "val2"}',
-            '{    "key": 67  , "key2": "val2", "key3": 78.989}'
+            '{    "key": 67  , "key2": "val2", "key3": 78.989}',
+            '{ "key1": "word1 word2", "key2": "word1 word2 word3"}',
+            '{"up": "live", "rate": "war", "bring": "receive"}'
         ]
         with self.subTest():
             for json_str in json_strs:
@@ -77,6 +82,17 @@ class TestLoads(unittest.TestCase):
                 with self.assertRaises(TypeError) as err:
                     cjson_doc = cjson.loads(json_str)
                     self.assertEqual(str(err.exception), 'Expected object or value')
+
+    def test_generated_str(self):
+        n, m = 1, 3
+        faker = Faker()
+        with self.subTest():
+            for i in range(n):
+                json_dct = {faker.word(): choices((faker.word(), 5654),
+                                             weights=(90, 30))[0] for _ in range(m)}
+                json_str = json.dumps(json_dct)
+                self.assertEqual(cjson.loads(json_str),
+                                 json_dct)
 
 
 class TestDumps(unittest.TestCase):
@@ -120,3 +136,12 @@ class TestDumps(unittest.TestCase):
                     cjson_str = cjson.dumps(json_dict)
                     self.assertEqual(str(err.exception), 'value must be str or number')
 
+    def test_generated_jsons(self):
+        n, m = 5, 25
+        faker = Faker()
+        with self.subTest():
+            for i in range(n):
+                dct = {faker.word(): choices((faker.word(), 5654),
+                                             weights=(90, 30))[0] for _ in range(m)}
+                self.assertEqual(cjson.dumps(dct),
+                                 json.dumps(dct))

@@ -224,6 +224,11 @@ PyObject* cjson_dumps(PyObject* self, PyObject* args){
         return NULL;
     }
 
+    if (!PyDict_Check(dict)){
+        PyErr_Format(PyExc_TypeError, "Expected dict");
+        return NULL;
+    }
+
     PyObject *final_string_list = PyList_New(0);
     PyObject *sep = PyUnicode_FromString(": ");
     PyObject *quots = PyUnicode_FromString("\"");
