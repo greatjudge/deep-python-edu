@@ -43,11 +43,9 @@ async def fetch_url(url: str,
 async def work(url_queue: Queue[str], client: ClientSession):
     while True:
         url = await url_queue.get()
-        try:
-            res = await fetch_url(url, client)
-            await useful_action(res)
-        finally:
-            url_queue.task_done()
+        res = await fetch_url(url, client)
+        await useful_action(res)
+        url_queue.task_done()
 
 
 async def supervisor(filename: str, count_workers: int) -> None:

@@ -2,7 +2,8 @@ import unittest
 import asyncio
 from unittest import mock
 from pathlib import Path
-from fetcher import supervisor
+from asyncio import Queue
+from fetcher import supervisor, fetch_url, work
 
 
 TEST_URLS = Path('test_urls.txt')
@@ -45,3 +46,43 @@ class TestSupervisor(unittest.IsolatedAsyncioTestCase):
                                  get_mock_calls)
         self.assertSequenceEqual(mock_usful_action.mock_calls,
                                  usf_action_mock_calls)
+
+
+class TestFetchUrl(unittest.IsolatedAsyncioTestCase):
+    @mock.patch('builtins.print')
+    async def test_normal(self, mock_print):
+        url = 'https://some_dom.com/some_url'
+        client = mock.MagicMock()
+        resp = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        res = await fetch_url(url, client)
+        self.assertEqual(client.method_calls,
+                         [mock.call.get(url, timeout=10)])
+        self.assertEqual(res, resp)
+
+
+class TestWork(unittest.IsolatedAsyncioTestCase):
+
+    @mock.patch('fetcher.fetch_url')
+    @mock.patch('fetcher.useful_action')
+    async def test_normal(self, mock_usf_action, mock_fetch_url):
+        # print(mock_usf_action)
+        url_queue = Queue()
+        url = 'https://some_url'
+        await url_queue.put(url)
+        client = mock.MagicMock()
+        res = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        mock_fetch_url.return_value = res
+
+        task = asyncio.create_task(work(url_queue, client))
+        await url_queue.join()
+        task.cancel()
+        try:
+            await task
+        except asyncio.exceptions.CancelledError:
+            pass
+
+        self.assertEqual(mock_fetch_url.mock_calls,
+                         [mock.call(url, client)])
+        self.assertEqual(mock_usf_action.mock_calls,
+                         [mock.call(res)])
+
