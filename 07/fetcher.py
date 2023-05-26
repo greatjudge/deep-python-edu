@@ -8,9 +8,6 @@ import aiohttp
 from aiohttp import ClientSession, ClientResponse
 
 
-Q_MAXSIZE = 50
-
-
 def get_args():
     descr = 'Ассинхронно обкачивает урлы'
     parser = ArgumentParser(description=descr)
@@ -32,26 +29,29 @@ async def useful_action(res: ClientResponse):
 
 
 async def fetch_url(url: str,
-                    client: ClientSession) -> None:
+                    client: ClientSession) -> ClientResponse:
     try:
         async with client.get(url, timeout=10) as res:
             print(f'{url} is fetched')
-            await useful_action(res)
+            return res
     except asyncio.TimeoutError as err:
         print(f'timeout error with url: {url}: {err}')
+    except aiohttp.ClientError as err:
+        print(f'{url=}, {err}')
 
 
 async def work(url_queue: Queue[str], client: ClientSession):
     while True:
         url = await url_queue.get()
         try:
-            await fetch_url(url, client)
+            res = await fetch_url(url, client)
+            await useful_action(res)
         finally:
             url_queue.task_done()
 
 
 async def supervisor(filename: str, count_workers: int) -> None:
-    url_queue = Queue(Q_MAXSIZE)
+    url_queue = Queue(count_workers)
     with open(filename, encoding='utf-8') as file:
         async with aiohttp.ClientSession() as client:
             tasks = [asyncio.create_task(work(url_queue, client))
