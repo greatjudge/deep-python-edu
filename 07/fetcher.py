@@ -1,7 +1,7 @@
 import os
 import asyncio
 from argparse import ArgumentParser
-from asyncio import Queue
+from asyncio import Queue, Semaphore
 from time import time
 
 import aiohttp
@@ -42,10 +42,15 @@ async def fetch_url(url: str,
 
 async def work(url_queue: Queue[str], client: ClientSession):
     while True:
-        url = await url_queue.get()
-        res = await fetch_url(url, client)
-        await useful_action(res)
-        url_queue.task_done()
+        try:
+            url = await url_queue.get()
+            try:
+                res = await fetch_url(url, client)
+                await useful_action(res)
+            finally:
+                url_queue.task_done()
+        except Exception as err:
+            print(err)
 
 
 async def supervisor(filename: str, count_workers: int) -> None:
