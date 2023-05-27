@@ -35,20 +35,23 @@ def work(urls_file: TextIO, addr: tuple[str, int], lock: Lock):
     with lock:
         line = urls_file.readline()
     while line:
-        url = line.strip()
-
         try:
-            conn.send(url.encode())
-            data = conn.recv(2048)
-        except socket.error as err:
-            print(f'Error in communication with {addr}, {url=}!: {err}')
-            continue
+            url = line.strip()
 
-        if data:
-            print(f'{url}: {data.decode()}')
+            try:
+                conn.send(url.encode())
+                data = conn.recv(2048)
+            except socket.error as err:
+                print(f'Error in communication with {addr}, {url=}!: {err}')
+                continue
 
-        with lock:
-            line = urls_file.readline()
+            if data:
+                print(f'{url}: {data.decode()}')
+
+            with lock:
+                line = urls_file.readline()
+        except Exception:
+            pass
     conn.close()
 
 

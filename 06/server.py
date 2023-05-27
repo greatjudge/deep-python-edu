@@ -72,46 +72,53 @@ class Worker(Thread):
 
     def run(self):
         while True:
-            obj = self.queue.get()
-            if isinstance(obj, ExitPill):
-                break
-            obj.settimeout(self.SOCKET_TIMEOUT)
-            self._handle_connection(obj)
-            obj.close()
+            try:
+                obj = self.queue.get()
+                if isinstance(obj, ExitPill):
+                    break
+                obj.settimeout(self.SOCKET_TIMEOUT)
+                self._handle_connection(obj)
+                obj.close()
+            except Exception as err:
+                print(err)
 
     def _handle_connection(self, conn: SocketType):
         while True:
             try:
-                data = conn.recv(2048)
-            except socket.timeout as err:
-                mes = f'the waiting time {self.SOCKET_TIMEOUT}s' \
-                      f' was exceeded: {err}'
-                conn.send(mes.encode())
-                break
-            except socket.error as err:
-                print('Error in connection socket recv!: ', err)
-                continue
+                try:
+                    data = conn.recv(2048)
+                except socket.timeout as err:
+                    mes = f'the waiting time {self.SOCKET_TIMEOUT}s' \
+                          f' was exceeded: {err}'
+                    conn.send(mes.encode())
+                    break
+                except socket.error as err:
+                    print('Error in connection socket recv!: ', err)
+                    continue
 
-            if not data:
-                break
-            url = data.decode()
+                if not data:
+                    break
+                url = data.decode()
 
-            try:
-                most_common = self._most_common_words(self._get_html(url),
-                                                      self.top_k)
-                message = json.dumps(most_common).encode()
-            except requests.ConnectionError as err:
-                message = json.dumps({'error': str(err)}).encode()
-            except requests.exceptions.MissingSchema as err:
-                message = json.dumps({'error': f'invalid url: {err}'}).encode()
-            except requests.Timeout:
-                message = json.dumps({'error': 'request to url'
-                                               ' exceeded 5 seconds'})
-            conn.send(message)
+                try:
+                    most_common = self._most_common_words(self._get_html(url),
+                                                          self.top_k)
+                    message = json.dumps(most_common).encode()
+                except requests.ConnectionError as err:
+                    message = json.dumps({'error': str(err)}).encode()
+                except requests.exceptions.MissingSchema as err:
+                    message = json.dumps({'error': f'invalid url:'
+                                                   f' {err}'}).encode()
+                except requests.Timeout:
+                    message = json.dumps({'error': 'request to url'
+                                                   ' exceeded 5 seconds'})
+                conn.send(message)
 
-            with self.lock:
-                self.processed_urls.urls_count += 1
-                print(f'Processed {self.processed_urls.urls_count} urls')
+                with self.lock:
+                    self.processed_urls.urls_count += 1
+                    print(f'Processed {self.processed_urls.urls_count} urls')
+            except Exception as err:
+                print(err)
 
     @staticmethod
     def _most_common_words(text: str, top_k: int) -> dict[str, int]:
