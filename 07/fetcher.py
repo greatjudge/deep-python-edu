@@ -1,7 +1,7 @@
 import os
 import asyncio
 from argparse import ArgumentParser
-from asyncio import Queue, Semaphore
+from asyncio import Queue
 from time import time
 
 import aiohttp
