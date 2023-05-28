@@ -160,8 +160,9 @@ class Server:
     def run_server(self, num_workers: int, top_k: int):
         self.executing = True
         if not self.EXECUTING_ALL:
-            print('instances are not allowed to execute',
+            print('instances are not allowed to executeб\,',
                   'call "allow_servers_to_execute" before run')
+            return
         print('Starting server ...')
         self.server.listen(3)
 
@@ -183,6 +184,7 @@ class Server:
             except socket.timeout:
                 continue
 
+        self.server.close()
         print('Server doesnt accept new connections')
         print('Processing existing connections ...')
 
