@@ -22,6 +22,7 @@ class TestSupervisor(unittest.IsolatedAsyncioTestCase):
         count_workers = 1
         client = mock_sess.return_value.__aenter__.return_value = mock.MagicMock()
         res = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        res.text = 'Some text'
 
         usf_action_mock_calls = [mock.call(res) for i in range(len(self.urls))]
         get_mock_calls = [mock.call.get(url, timeout=10) for url in self.urls]
@@ -30,6 +31,11 @@ class TestSupervisor(unittest.IsolatedAsyncioTestCase):
                                  get_mock_calls)
         self.assertSequenceEqual(mock_usful_action.mock_calls,
                                  usf_action_mock_calls)
+        for args in mock_usful_action.call_args_list:
+            resp = args[0][0]
+            self.assertEqual(resp.text, res.text)
+            self.assertEqual(resp, res)
+
 
     @mock.patch('fetcher.useful_action')
     @mock.patch('builtins.print')
@@ -38,6 +44,7 @@ class TestSupervisor(unittest.IsolatedAsyncioTestCase):
         count_workers = 20
         client = mock_sess.return_value.__aenter__.return_value = mock.MagicMock()
         res = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        res.text = 'Some text'
 
         usf_action_mock_calls = [mock.call(res) for i in range(len(self.urls))]
         get_mock_calls = [mock.call.get(url, timeout=10) for url in self.urls]
@@ -46,6 +53,10 @@ class TestSupervisor(unittest.IsolatedAsyncioTestCase):
                                  get_mock_calls)
         self.assertSequenceEqual(mock_usful_action.mock_calls,
                                  usf_action_mock_calls)
+        for args in mock_usful_action.call_args_list:
+            resp = args[0][0]
+            self.assertEqual(resp.text, res.text)
+            self.assertEqual(resp, res)
 
 
 class TestFetchUrl(unittest.IsolatedAsyncioTestCase):
@@ -54,10 +65,12 @@ class TestFetchUrl(unittest.IsolatedAsyncioTestCase):
         url = 'https://some_dom.com/some_url'
         client = mock.MagicMock()
         resp = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        resp.text = 'some text'
         res = await fetch_url(url, client)
         self.assertEqual(client.method_calls,
                          [mock.call.get(url, timeout=10)])
         self.assertEqual(res, resp)
+        self.assertEqual(res.text, resp.text)
 
 
 class TestWork(unittest.IsolatedAsyncioTestCase):
@@ -71,6 +84,7 @@ class TestWork(unittest.IsolatedAsyncioTestCase):
         await url_queue.put(url)
         client = mock.MagicMock()
         res = client.get.return_value.__aenter__.return_value = mock.MagicMock()
+        res.text = 'some text'
         mock_fetch_url.return_value = res
 
         task = asyncio.create_task(work(url_queue, client))
@@ -85,4 +99,8 @@ class TestWork(unittest.IsolatedAsyncioTestCase):
                          [mock.call(url, client)])
         self.assertEqual(mock_usf_action.mock_calls,
                          [mock.call(res)])
+        for args in mock_usf_action.call_args_list:
+            resp = args[0][0]
+            self.assertEqual(resp.text, res.text)
+            self.assertEqual(resp, res)
 
