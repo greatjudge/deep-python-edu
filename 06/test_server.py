@@ -16,8 +16,6 @@ def find_free_addr():
 
 
 class TestServer(unittest.TestCase):
-    # HOST, PORT = 'localhost', 55553
-
     def test_normal(self):
         host, port = find_free_addr()
         server = Server(host, port)
@@ -45,7 +43,6 @@ class TestServer(unittest.TestCase):
 
     def client_thread_work(self, url: str, result_queue: Queue[str], addr: tuple[str, int]):
         conn = socket.create_connection(addr)
-        # conn.settimeout(15)
         conn.send(url.encode())
         result_queue.put(conn.recv(2048).decode())
         conn.close()
@@ -54,7 +51,7 @@ class TestServer(unittest.TestCase):
         host, port = find_free_addr()
         server = Server(host, port)
         server_th = Thread(target=server.run_server,
-                           args=(30, 2))
+                           args=(20, 2))
         url = 'https://some_dom/some_res'
         text = 'word1 word2 word1 word1 word2 word3 word2 word1'
         result_queue = Queue()
@@ -79,4 +76,6 @@ class TestServer(unittest.TestCase):
             result = []
             while not result_queue.empty():
                 result.append(json.loads(result_queue.get()))
+            get_mock_calls = [mock.call(url, timeout=5) for _ in range(threads_num)]
+            self.assertEqual(mock_get.mock_calls, get_mock_calls)
             self.assertCountEqual(result, answer)
