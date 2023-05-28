@@ -8,11 +8,19 @@ from server import Server
 from queue import Queue
 
 
+def find_free_addr():
+    with socket.socket() as s:
+        s.bind(('', 0))
+        addr = s.getsockname()
+    return addr
+
+
 class TestServer(unittest.TestCase):
-    HOST, PORT = 'localhost', 55553
+    # HOST, PORT = 'localhost', 55553
 
     def test_normal(self):
-        server = Server(self.HOST, self.PORT)
+        host, port = find_free_addr()
+        server = Server(host, port)
         server_th = Thread(target=server.run_server,
                            args=(1, 2))
         url = 'https://some_dom/some_res'
@@ -24,7 +32,7 @@ class TestServer(unittest.TestCase):
             server_th.start()
 
             try:
-                conn = socket.create_connection((self.HOST, self.PORT))
+                conn = socket.create_connection((host, port))
                 conn.send(url.encode())
                 result_send = json.loads(conn.recv(2048).decode())
                 self.assertEqual(result_send, result)
@@ -35,14 +43,16 @@ class TestServer(unittest.TestCase):
                 server.stop_server()
                 server_th.join()
 
-    def client_thread_work(self, url: str, result_queue: Queue[str]):
-        conn = socket.create_connection((self.HOST, self.PORT))
+    def client_thread_work(self, url: str, result_queue: Queue[str], addr: tuple[str, int]):
+        conn = socket.create_connection(addr)
+        # conn.settimeout(15)
         conn.send(url.encode())
         result_queue.put(conn.recv(2048).decode())
         conn.close()
 
     def test_many_requests(self):
-        server = Server(self.HOST, self.PORT)
+        host, port = find_free_addr()
+        server = Server(host, port)
         server_th = Thread(target=server.run_server,
                            args=(30, 2))
         url = 'https://some_dom/some_res'
@@ -51,7 +61,7 @@ class TestServer(unittest.TestCase):
         threads_num = 20
         answer = [{'word1': 4, 'word2': 3} for i in range(threads_num)]
         threads = [Thread(target=self.client_thread_work,
-                          args=(url, result_queue)) for _ in range(threads_num)]
+                          args=(url, result_queue, (host, port)), daemon=True) for _ in range(threads_num)]
 
         with mock.patch('requests.get') as mock_get:
             res = mock_get.return_value
