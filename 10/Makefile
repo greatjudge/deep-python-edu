@@ -7,4 +7,7 @@ main:
 	python setup.py install; \
 
 test: main
-	venv/bin/python -m unittest tests.py
+	venv/bin/python -m unittest tests.py;\
+
+clean:
+	rm -r jsons

@@ -1,5 +1,6 @@
 from pathlib import Path
 from time import perf_counter
+from zipfile import ZipFile
 
 import json
 import cjson
@@ -81,6 +82,8 @@ def cjson_loads(jsons_directory: Path):
 
 
 def main():
+    with ZipFile('jsons.zip') as myzip:
+        myzip.extractall()
     jsons_directory = Path('jsons')
 
     cjson_time = cjson_loads(jsons_directory)
