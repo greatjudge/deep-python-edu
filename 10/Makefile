@@ -10,4 +10,4 @@ test: main
 	venv/bin/python -m unittest tests.py;\
 
 clean:
-	rm -r jsons
+	rm -r build cjson.egg-info dist jsons
